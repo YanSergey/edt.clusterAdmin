@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %pluginName
+Bundle-Vendor: %providerName
+Bundle-Version: 0.0.1.qualifier
+Bundle-SymbolicName: ru.yanygin.dt.clusterAdmin.plugin;singleton:=true
+Bundle-ActivationPolicy: lazy
+Bundle-Localization: plugin
+Bundle-RequiredExecutionEnvironment: JavaSE-11
+Automatic-Module-Name: org.example
