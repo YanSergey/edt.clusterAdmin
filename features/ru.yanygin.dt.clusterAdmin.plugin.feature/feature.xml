@@ -35,11 +35,4 @@
          version="0.0.1.qualifier"
          unpack="false"/>
 
-   <plugin
-         id="ru.yanygin.dt.clusterAdmin.plugin.ui"
-         download-size="0"
-         install-size="0"
-         version="0.0.1.qualifier"
-         unpack="false"/>
-
 </feature>

@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <plugin>
+   <extension
+         point="org.eclipse.ui.views">
+      <view
+            class="ru.yanygin.dt.clusterAdmin.plugin.ClusterViewer"
+            id="ru.yanygin.dt.clusterAdmin.plugin.ClusterViewer"
+            name="Cluster viewer"
+            restorable="true">
+      </view>
+   </extension>
    
 </plugin>
