@@ -1,7 +1,19 @@
 package ru.yanygin.dt.clusterAdmin.plugin;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -13,6 +25,7 @@ import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.part.ViewPart;
+import org.osgi.service.prefs.Preferences;
 
 import com._1c.g5.v8.dt.platform.services.core.infobases.IInfobaseManager;
 import com._1c.g5.v8.dt.platform.services.model.InfobaseReference;
@@ -22,9 +35,14 @@ import com._1c.g5.v8.dt.platform.services.model.ServerConnectionString;
 import com._1c.g5.wiring.ServiceAccess;
 import com._1c.g5.wiring.ServiceSupplier;
 import com._1c.v8.ibis.admin.client.AgentAdminConnectorFactory;
+import com.google.gson.Gson;
+import com.google.gson.stream.JsonReader;
+
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.swt.custom.SashForm;
+
+//import ru.yanygin.dt.clusterAdmin.plugin.MyConfiguration;
 
 public class ClusterViewer extends ViewPart {
 
@@ -33,6 +51,7 @@ public class ClusterViewer extends ViewPart {
 	}
 	Tree serversTree;
 	Composite mainForm;
+	List<String> allServers = new ArrayList<>();
 	
 	@Override
 	public void createPartControl(Composite parent) {
@@ -48,7 +67,7 @@ public class ClusterViewer extends ViewPart {
 //			}
 //		});
 		
-		SashForm sashForm = new SashForm(parent, SWT.NONE);
+		SashForm sashForm = new SashForm(parent, SWT.VERTICAL);
 		
 		// Toolbar
 		ToolBar toolBar = new ToolBar(sashForm, SWT.FLAT | SWT.RIGHT);
@@ -71,7 +90,7 @@ public class ClusterViewer extends ViewPart {
 		});
 		toolBarItemConnectToServers.setText("Connect to servers");
 
-		serversTree = new Tree(sashForm, SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL);
+		serversTree = new Tree(sashForm, SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL | SWT.CHECK);
 		serversTree.setHeaderVisible(true);
 		TreeColumn columnServer = new TreeColumn(serversTree, SWT.LEFT);
 		columnServer.setText("Cluster name");
@@ -79,9 +98,9 @@ public class ClusterViewer extends ViewPart {
 		
 		TreeColumn columnPing = new TreeColumn(serversTree, SWT.CENTER);
 		columnPing.setText("RAS port");
-		columnPing.setWidth(50);
+		columnPing.setWidth(60);
 		
-		TreeColumn columnBase = new TreeColumn(serversTree, SWT.RIGHT);
+		TreeColumn columnBase = new TreeColumn(serversTree, SWT.LEFT);
 		columnBase.setText("Base name");
 		columnBase.setWidth(200);
 		
@@ -89,7 +108,19 @@ public class ClusterViewer extends ViewPart {
 		serversTree.setMenu(menu);
 		sashForm.setWeights(new int[] {1, 4});
 		
+		readSavedKnownServers();
 		
+		Image serverIcon = getImage(mainForm.getDisplay(), "/icons/server_24.png");
+		for (String server : allServers) {
+
+			TreeItem item = new TreeItem(serversTree, SWT.NONE);
+			item.setText(new String[] { server, Integer.toString(getRASPort(server)) });
+			item.setData("ServerName", getServerName(server));
+			item.setData("RASPort", getRASPort(server));
+			item.setImage(serverIcon);
+			item.setChecked(true);
+		}
+
 	}
 
 	@Override
@@ -111,19 +142,23 @@ public class ClusterViewer extends ViewPart {
 	}
 
 	private void fillServersList() {
-		Image serverIcon = getImage(mainForm.getDisplay(), "/icons/server_down_24.png");
+		Boolean addedServers = false;
+		Image serverIcon = getImage(mainForm.getDisplay(), "/icons/server_24.png");
 
-		List<String> servers = searchServersFromInfobases();
+		List<String> foundServers = searchServersFromInfobases();
 
-		for (String server : servers) {
-		//for (int i = 0; i < servers.size(); i++) {
-			//String server = servers.get(i);
+		for (String server : foundServers) {
 			
-			TreeItem item = new TreeItem(serversTree, SWT.NONE);
-			item.setText(new String[] { server, Integer.toString(getRASPort(server)) });
-			item.setData("ServerName", getServerName(server));
-			item.setData("RASPort", getRASPort(server));
-			item.setImage(serverIcon);
+			if (!allServers.contains(server)) {
+				TreeItem item = new TreeItem(serversTree, SWT.NONE);
+				item.setText(new String[] { server, Integer.toString(getRASPort(server)) });
+				item.setData("ServerName", getServerName(server));
+				item.setData("RASPort", getRASPort(server));
+				item.setImage(serverIcon);
+				
+				allServers.add(server);
+				addedServers = true;
+			}
 			
 			
 			
@@ -138,11 +173,15 @@ public class ClusterViewer extends ViewPart {
 //				}
 //			}
 		}
+
+		if (addedServers) {
+			saveKnownServers();
+		}
 	}
 
 	private List<String> searchServersFromInfobases() {
 		
-		List<String> servers = new ArrayList<>();
+		List<String> foundServers = new ArrayList<>();
 
 		List<Section> infoBasesSection = getInfobaseManager().getAll(true);
 		
@@ -151,13 +190,13 @@ public class ClusterViewer extends ViewPart {
 				InfobaseReference ib1 = (InfobaseReference) ib;
 				ServerConnectionString cs = (ServerConnectionString) ib1.getConnectionString();
 				String newServer = cs.getServer();
-				if (!servers.contains(newServer)) {
-					servers.add(newServer);					
+				if (!foundServers.contains(newServer)) {
+					foundServers.add(newServer);					
 				}
 			}
 		});
-		servers.sort(null);
-		return servers;
+		foundServers.sort(null);
+		return foundServers;
 	}
 	
 	private String getServerName(String serverAddress) {
@@ -193,11 +232,11 @@ public class ClusterViewer extends ViewPart {
 		
 		TreeItem[] servers = serversTree.getItems();
 		for (TreeItem server : servers) {
-			String serverAdress = (String) server.getData("ServerName");
-			int serverPort = (int) server.getData("RASPort");
+			String serverAddress = (String) server.getData("ServerName");
+			int rasPort = (int) server.getData("RASPort");
 			
 			try {
-				conn.connect(serverAdress, serverPort, 20);
+				conn.connect(serverAddress, rasPort, 20);
 				
 //				List<IClusterInfo> clusterInfoList = conn.getClusterInfoList();
 //				IClusterInfo cluster = clusterInfoList.get(0);
@@ -231,4 +270,56 @@ public class ClusterViewer extends ViewPart {
 		}
 
 	}
+	
+	private void readSavedKnownServers() {
+//		IPreferenceStore store = Activator.getDefault().getPreferenceStore();
+//		String knownServers = store.getString("ServersList");
+//		if (!knownServers.isBlank()) {
+//			allServers = Arrays.asList(knownServers.split(","));
+//		}
+		
+		IPreferenceStore store = Activator.getDefault().getPreferenceStore();
+		String knownServersPath = store.getString("KnownServersPath");
+		File configFileName;
+		JsonReader jsonReader;
+		if (knownServersPath.isBlank()) {
+			configFileName = ResourcesPlugin.getWorkspace().getRoot().getLocation().append(".metadata")
+					.append("edtclusteradmin.config").toFile();
+		} else {
+			configFileName = new File(knownServersPath);
+		}
+
+		try {
+			jsonReader = new JsonReader(
+					new InputStreamReader(new FileInputStream(configFileName), StandardCharsets.UTF_8));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			return;
+		}
+		PluginConfig pluginConfig = new Gson().fromJson(jsonReader, PluginConfig.class);
+
+	}
+
+	private void saveKnownServers() {
+		IPreferenceStore store = Activator.getDefault().getPreferenceStore();
+		//store.setValue("ServersList", String.join(",", allServers));
+		
+		String knownServersPath = store.getString("KnownServersPath");
+		if (!knownServersPath.isBlank()) {
+//			File configFileName = ResourcesPlugin.getWorkspace().getRoot().getLocation().append(".metadata")
+//					.append("edtclusteradmin.config").toFile();
+//			// new Path(EcoreUtil.getURI(module).toPlatformString(true)));
+//
+//			String jsonContent = "";
+//
+//			JsonReader jr = new JsonReader(
+//					new InputStreamReader(new FileInputStream(configFileName), StandardCharsets.UTF_8));
+//			PluginConfig parser = new Gson().fromJson(jsonContent, PluginConfig.class);
+
+			allServers = Arrays.asList(knownServersPath.split(","));
+		}
+	
+		
+	}
+
 }
