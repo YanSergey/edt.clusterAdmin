@@ -3,13 +3,18 @@ package ru.yanygin.dt.clusterAdmin.plugin;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
@@ -37,6 +42,9 @@ import com._1c.g5.wiring.ServiceSupplier;
 import com._1c.v8.ibis.admin.client.AgentAdminConnectorFactory;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+
+import ru.yanygin.dt.clusterAdmin.plugin.PluginConfig.ServerConfig;
 
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
@@ -45,6 +53,9 @@ import org.eclipse.swt.custom.SashForm;
 //import ru.yanygin.dt.clusterAdmin.plugin.MyConfiguration;
 
 public class ClusterViewer extends ViewPart {
+	Image serverIcon;
+	Image serverIconUp;
+	Image serverIconDown;
 
 	public ClusterViewer() {
 		// TODO Auto-generated constructor stub
@@ -52,6 +63,7 @@ public class ClusterViewer extends ViewPart {
 	Tree serversTree;
 	Composite mainForm;
 	List<String> allServers = new ArrayList<>();
+	PluginConfig pluginConfig = new PluginConfig();
 	
 	@Override
 	public void createPartControl(Composite parent) {
@@ -72,14 +84,14 @@ public class ClusterViewer extends ViewPart {
 		// Toolbar
 		ToolBar toolBar = new ToolBar(sashForm, SWT.FLAT | SWT.RIGHT);
 		
-		ToolItem toolBarItemFillServersList = new ToolItem(toolBar, SWT.NONE);
-		toolBarItemFillServersList.addSelectionListener(new SelectionAdapter() {
+		ToolItem toolBarItemFindNewServers = new ToolItem(toolBar, SWT.NONE);
+		toolBarItemFindNewServers.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				fillServersList();
+				findNewServers();
 			}
 		});
-		toolBarItemFillServersList.setText("Fill server list");
+		toolBarItemFindNewServers.setText("Find new Servers");
 
 		ToolItem toolBarItemConnectToServers = new ToolItem(toolBar, SWT.NONE);
 		toolBarItemConnectToServers.addSelectionListener(new SelectionAdapter() {
@@ -108,20 +120,18 @@ public class ClusterViewer extends ViewPart {
 		serversTree.setMenu(menu);
 		sashForm.setWeights(new int[] {1, 4});
 		
+		initIcon();
 		readSavedKnownServers();
-		
-		Image serverIcon = getImage(mainForm.getDisplay(), "/icons/server_24.png");
-		for (String server : allServers) {
-
-			TreeItem item = new TreeItem(serversTree, SWT.NONE);
-			item.setText(new String[] { server, Integer.toString(getRASPort(server)) });
-			item.setData("ServerName", getServerName(server));
-			item.setData("RASPort", getRASPort(server));
-			item.setImage(serverIcon);
-			item.setChecked(true);
-		}
+		fillServersList();
 
 	}
+
+	private void initIcon() {
+		serverIcon = getImage(mainForm.getDisplay(), "/icons/server_24.png");
+		serverIconUp = getImage(mainForm.getDisplay(), "/icons/server_up_24.png");
+		serverIconDown = getImage(mainForm.getDisplay(), "/icons/server_down_24.png");
+	}
+	
 
 	@Override
 	public void setFocus() {
@@ -141,62 +151,111 @@ public class ClusterViewer extends ViewPart {
 		return new Image(device, this.getClass().getResourceAsStream(name));
 	}
 
-	private void fillServersList() {
-		Boolean addedServers = false;
-		Image serverIcon = getImage(mainForm.getDisplay(), "/icons/server_24.png");
+	private void findNewServers() {
+//		Boolean addedServers = false;
 
-		List<String> foundServers = searchServersFromInfobases();
+		List<String> foundServers = searchServersFromInfobasesList();
 
-		for (String server : foundServers) {
-			
-			if (!allServers.contains(server)) {
-				TreeItem item = new TreeItem(serversTree, SWT.NONE);
-				item.setText(new String[] { server, Integer.toString(getRASPort(server)) });
-				item.setData("ServerName", getServerName(server));
-				item.setData("RASPort", getRASPort(server));
-				item.setImage(serverIcon);
-				
-				allServers.add(server);
-				addedServers = true;
-			}
-			
-			
-			
-//			for (int j = 0; j < 4; j++) {
-//				TreeItem subItem = new TreeItem(item, SWT.NONE);
-//				subItem.setText(new String[] { "subitem " + j, "jklmnop", "qrs" });
-//				subItem.setImage(getDefaultImage());
-//				for (int k = 0; k < 4; k++) {
-//					TreeItem subsubItem = new TreeItem(subItem, SWT.NONE);
-//					subsubItem.setText(new String[] { "subsubitem " + k, "tuv", "wxyz" });
-//					subsubItem.setImage(getTitleImage());
-//				}
+		List<String> newServers = pluginConfig.addNewServers(foundServers);
+		
+		fillServersList(newServers);
+		
+//		for (String server : newServers) {
+//			
+//			if (!allServers.contains(server)) {
+//				TreeItem item = new TreeItem(serversTree, SWT.NONE);
+//				item.setText(new String[] { server, Integer.toString(getRASPort(server)) });
+//				item.setData("ServerName", getServerName(server));
+//				item.setData("RASPort", getRASPort(server));
+//				item.setImage(serverIcon);
+//				
+//				allServers.add(server);
+//				addedServers = true;
 //			}
-		}
+//			
+//			
+//			
+////			for (int j = 0; j < 4; j++) {
+////				TreeItem subItem = new TreeItem(item, SWT.NONE);
+////				subItem.setText(new String[] { "subitem " + j, "jklmnop", "qrs" });
+////				subItem.setImage(getDefaultImage());
+////				for (int k = 0; k < 4; k++) {
+////					TreeItem subsubItem = new TreeItem(subItem, SWT.NONE);
+////					subsubItem.setText(new String[] { "subsubitem " + k, "tuv", "wxyz" });
+////					subsubItem.setImage(getTitleImage());
+////				}
+////			}
+//		}
 
-		if (addedServers) {
+		if (!newServers.isEmpty()) {
 			saveKnownServers();
 		}
 	}
 
-	private List<String> searchServersFromInfobases() {
-		
+	private List<String> searchServersFromInfobasesList() {
+
 		List<String> foundServers = new ArrayList<>();
 
-		List<Section> infoBasesSection = getInfobaseManager().getAll(true);
-		
-		infoBasesSection.forEach(ib -> {
+		List<Section> infoBasesList = getInfobaseManager().getAll(true);
+
+		infoBasesList.forEach(ib -> {
 			if (ib instanceof InfobaseReference && ((InfobaseReference) ib).getInfobaseType() == InfobaseType.SERVER) {
 				InfobaseReference ib1 = (InfobaseReference) ib;
 				ServerConnectionString cs = (ServerConnectionString) ib1.getConnectionString();
 				String newServer = cs.getServer();
 				if (!foundServers.contains(newServer)) {
-					foundServers.add(newServer);					
+					foundServers.add(newServer);
 				}
 			}
 		});
 		foundServers.sort(null);
 		return foundServers;
+	}
+
+	private void fillServersList() {
+//		if (pluginConfig == null || pluginConfig.serversMap.isEmpty()) {
+		if (pluginConfig.serversMap.isEmpty()) {
+			return;
+		}
+		pluginConfig.serversMap.forEach((server, config) -> {
+			addServerItemInServersTree(config);
+		});
+
+//			for (ServerConfig server : pluginConfig.servers) {
+//				TreeItem item = new TreeItem(serversTree, SWT.NONE);
+//				item.setText(new String[] { server.serverAddress, Integer.toString(server.rasPort) });
+//				item.setData("ServerName", server.getServerName());
+//				item.setData("RASPort", server.rasPort);
+//				item.setImage(serverIcon);
+//				item.setChecked(true);
+//				
+//			}
+//			for (String server : pluginConfig.servers) {
+//	
+//				TreeItem item = new TreeItem(serversTree, SWT.NONE);
+//				item.setText(new String[] { server, Integer.toString(getRASPort(server)) });
+//				item.setData("ServerName", getServerName(server));
+//				item.setData("RASPort", getRASPort(server));
+//				item.setImage(serverIcon);
+//				item.setChecked(true);
+//			}
+
+	}
+
+	private void fillServersList(List<String> newServers) {
+		for (String newServer : newServers) {
+			addServerItemInServersTree(pluginConfig.serversMap.get(newServer));
+		}
+	}
+
+	private void addServerItemInServersTree(ServerConfig config) {
+		TreeItem item = new TreeItem(serversTree, SWT.NONE);
+		item.setText(new String[] { config.serverAddress, Integer.toString(config.rasPort) });
+		item.setData("ServerName", config.getServerName()); // del
+		item.setData("RASPort", config.rasPort); // del
+		item.setData("ServerConfig", config);
+		item.setImage(serverIcon);
+		item.setChecked(false);
 	}
 	
 	private String getServerName(String serverAddress) {
@@ -224,8 +283,6 @@ public class ClusterViewer extends ViewPart {
 	}
 
 	private void connectToServers() {
-		Image serverIconUp = getImage(mainForm.getDisplay(), "/icons/server_up_24.png");
-		Image serverIconDown = getImage(mainForm.getDisplay(), "/icons/server_down_24.png");
 			
 		AgentAdminConnectorFactory factory = new AgentAdminConnectorFactory();
 		AgentAdminUtil conn = new AgentAdminUtil(factory);
@@ -296,28 +353,43 @@ public class ClusterViewer extends ViewPart {
 			e.printStackTrace();
 			return;
 		}
-		PluginConfig pluginConfig = new Gson().fromJson(jsonReader, PluginConfig.class);
+		pluginConfig = new Gson().fromJson(jsonReader, PluginConfig.class);
 
+		if (pluginConfig == null) {
+			pluginConfig = new PluginConfig();
+		}
 	}
 
 	private void saveKnownServers() {
 		IPreferenceStore store = Activator.getDefault().getPreferenceStore();
-		//store.setValue("ServersList", String.join(",", allServers));
 		
 		String knownServersPath = store.getString("KnownServersPath");
-		if (!knownServersPath.isBlank()) {
-//			File configFileName = ResourcesPlugin.getWorkspace().getRoot().getLocation().append(".metadata")
-//					.append("edtclusteradmin.config").toFile();
-//			// new Path(EcoreUtil.getURI(module).toPlatformString(true)));
-//
-//			String jsonContent = "";
-//
-//			JsonReader jr = new JsonReader(
-//					new InputStreamReader(new FileInputStream(configFileName), StandardCharsets.UTF_8));
-//			PluginConfig parser = new Gson().fromJson(jsonContent, PluginConfig.class);
-
-			allServers = Arrays.asList(knownServersPath.split(","));
+		File configFileName;
+		if (knownServersPath.isBlank()) {
+			configFileName = ResourcesPlugin.getWorkspace().getRoot().getLocation().append(".metadata")
+					.append("edtclusteradmin.config").toFile();
+			store.setValue("KnownServersPath", configFileName.getPath());
+		} else {
+			configFileName = new File(knownServersPath);
 		}
+
+		JsonWriter jsonWriter;
+		try {
+			jsonWriter = new JsonWriter(
+					new OutputStreamWriter(new FileOutputStream(configFileName), StandardCharsets.UTF_8));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			return;
+		}
+		new Gson().toJson(pluginConfig, pluginConfig.getClass(), jsonWriter);
+		
+		try {
+			jsonWriter.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+//		allServers = Arrays.asList(knownServersPath.split(","));
 	
 		
 	}
