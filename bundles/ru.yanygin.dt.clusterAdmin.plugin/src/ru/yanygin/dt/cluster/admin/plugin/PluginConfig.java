@@ -1,4 +1,4 @@
-package ru.yanygin.dt.clusterAdmin.plugin;
+package ru.yanygin.dt.cluster.admin.plugin;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,31 +13,20 @@ import com.google.gson.annotations.SerializedName;
 public class PluginConfig {
 	@SerializedName("servers")
 	public 	Map<String, ServerConfig> serversMap = new HashMap<>();
-//	public 	List<ServerConfig> servers = new ArrayList<>();
 
 	public List<String> addNewServers(List<String> servers) {
-		
+
 		List<String> addedServers = new ArrayList<>();
-		
+
 		for (String serverName : servers) {
 			if (!this.serversMap.containsKey(serverName)) {
 				ServerConfig serverConfig = new ServerConfig(serverName);
 				this.serversMap.put(serverName, serverConfig);
-				
+
 				addedServers.add(serverName);
 			}
-//			if (!this.serversMap.) {
-//				TreeItem item = new TreeItem(serversTree, SWT.NONE);
-//				item.setText(new String[] { server, Integer.toString(getRASPort(server)) });
-//				item.setData("ServerName", getServerName(server));
-//				item.setData("RASPort", getRASPort(server));
-//				item.setImage(serverIcon);
-//				
-//				allServers.add(server);
-//				addedServers = true;
-			}
+		}
 
-		//this.serversMap.put(key, value)
 		return addedServers;
 	}
 
@@ -46,14 +35,17 @@ public class PluginConfig {
 		@SerializedName("serverAddress")
 		public String serverAddress;
 		
-		@SerializedName("agentPort")
-		public int agentPort;
+		@SerializedName("managerPort")
+		public int managerPort;
 		
-		@SerializedName("rasPort")
-		public int rasPort;
+		@SerializedName("remoteRasPort")
+		public int remoteRasPort;
 		
-		@SerializedName("localRas")
-		public boolean localRas;
+		@SerializedName("useLocalRas")
+		public boolean useLocalRas;
+		
+		@SerializedName("localRasPort")
+		public int localRasPort;
 		
 		@SerializedName("localRasV8version")
 		public String localRasV8version;
@@ -63,12 +55,44 @@ public class PluginConfig {
 
 		public ServerConfig(String serverName) {
 			this.serverAddress = getServerName(serverName);
-			this.rasPort = getRASPort(serverName);
-			this.agentPort = getAgentPort(serverName);
+			this.managerPort = getManagerPort(serverName);
+			this.remoteRasPort = getRemoteRASPort(serverName);
+			this.useLocalRas = false;
+			this.localRasPort = 0;
+			this.localRasV8version = "";
+			this.autoconnect = false;
 		}
 
 		public String getServerName() {
-			return serverAddress.concat(":").concat(Integer.toString(rasPort));
+			return serverAddress.concat(":").concat(Integer.toString(remoteRasPort));
+		}
+
+		public String getManagerPortAsString() {
+			return Integer.toString(managerPort);
+		}
+
+		public String getRemoteRasPortAsString() {
+			return Integer.toString(remoteRasPort);
+		}
+
+		public String getLocalRasPortAsString() {
+			return Integer.toString(localRasPort);
+		}
+		
+		public void setNewServerProperties(String serverAddress,
+											int managerPort,
+											int remoteRasPort,
+											boolean useLocalRas,
+											int localRasPort,
+											String localRasV8version,
+											boolean autoconnect) {
+			this.serverAddress = serverAddress;
+			this.managerPort = managerPort;
+			this.remoteRasPort = remoteRasPort;
+			this.useLocalRas = useLocalRas;
+			this.localRasPort = localRasPort;
+			this.localRasV8version = localRasV8version;
+			this.autoconnect = autoconnect;
 		}
 		
 		private String getServerName(String serverAddress) {
@@ -83,7 +107,7 @@ public class PluginConfig {
 			return serverName;
 		}
 		
-		private int getRASPort(String serverAddress) {
+		private int getRemoteRASPort(String serverAddress) {
 			int port;
 			String[] ar = serverAddress.split(":");
 			if (ar.length == 1) {
@@ -94,7 +118,7 @@ public class PluginConfig {
 			return port;
 		}
 		
-		private int getAgentPort(String serverAddress) {
+		private int getManagerPort(String serverAddress) {
 			int port;
 			String[] ar = serverAddress.split(":");
 			if (ar.length == 1) {

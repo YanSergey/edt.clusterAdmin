@@ -1,4 +1,4 @@
-package ru.yanygin.dt.clusterAdmin.plugin;
+package ru.yanygin.dt.cluster.admin.plugin;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -44,11 +44,12 @@ import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
-import ru.yanygin.dt.clusterAdmin.plugin.PluginConfig.ServerConfig;
+import ru.yanygin.dt.cluster.admin.plugin.PluginConfig.ServerConfig;
 
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.swt.custom.SashForm;
+import org.eclipse.swt.widgets.MenuItem;
 
 //import ru.yanygin.dt.clusterAdmin.plugin.MyConfiguration;
 
@@ -118,6 +119,86 @@ public class ClusterViewer extends ViewPart {
 		
 		Menu menu = new Menu(serversTree);
 		serversTree.setMenu(menu);
+		
+		MenuItem menuItemEditServer = new MenuItem(menu, SWT.NONE);
+		menuItemEditServer.setText("Edit Server");
+		menuItemEditServer.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				TreeItem[] item = serversTree.getSelection();
+				if (item.length == 0)
+					return;
+				
+				ServerConfig serverConfig = (ServerConfig) item[0].getData("ServerConfig");
+				EditServerConnectionDialog connectionDialog;
+//				try {
+					connectionDialog = new EditServerConnectionDialog(mainForm.getDisplay().getActiveShell(), serverConfig);
+//				} catch (Exception e1) {
+//					Activator.log(Activator.createErrorStatus(e1.getLocalizedMessage(), e1));
+//					return;
+//				}
+				
+				int dialogResult = connectionDialog.open();
+				if (dialogResult != 0) {
+					// перерисовать в дереве
+//					return null;
+				}
+
+			}
+		});
+		
+		MenuItem menuItemAddNewServer = new MenuItem(menu, SWT.NONE);
+		menuItemAddNewServer.setText("Add new Server");
+		menuItemAddNewServer.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+//				String newServerAddress = "newServerAddress";
+//				ServerConfig serverConfig = new ServerConfig(newServerAddress);
+//				EditServerConnectionDialog connectionDialog;
+////				try {
+//					connectionDialog = new EditServerConnectionDialog(mainForm.getDisplay().getActiveShell(), serverConfig);
+////				} catch (Exception e1) {
+////					Activator.log(Activator.createErrorStatus(e1.getLocalizedMessage(), e1));
+////					return;
+////				}
+//				
+//				int dialogResult = connectionDialog.open();
+//				if (dialogResult == 0) {
+//					serverConfig = null;
+//				}
+//				else {
+//					// добавить в дерево
+//					pluginConfig.serversMap.put(serverConfig.getServerName(), serverConfig);
+//					
+//					List<String> addedServers = new ArrayList<>();
+//					addedServers.add(serverConfig.getServerName());
+//					fillServersList(addedServers);
+////					return null;
+//				}
+			}
+		});
+		
+		MenuItem menuItemDeleteServer = new MenuItem(menu, SWT.NONE);
+		menuItemDeleteServer.setText("Delete Server");
+		menuItemDeleteServer.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+			}
+		});
+		
+		MenuItem menuItemAutoconnectEnable = new MenuItem(menu, SWT.CHECK);
+		menuItemAutoconnectEnable.setText("Autoconnect");
+		menuItemAutoconnectEnable.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+			}
+		});
+		
+		MenuItem mntmNewRadiobutton = new MenuItem(menu, SWT.RADIO);
+		mntmNewRadiobutton.setText("New RadioButton");
+		
+		MenuItem mntmNewRadiobutton_1 = new MenuItem(menu, SWT.RADIO);
+		mntmNewRadiobutton_1.setText("New RadioButton");
 		sashForm.setWeights(new int[] {1, 4});
 		
 		initIcon();
@@ -250,9 +331,9 @@ public class ClusterViewer extends ViewPart {
 
 	private void addServerItemInServersTree(ServerConfig config) {
 		TreeItem item = new TreeItem(serversTree, SWT.NONE);
-		item.setText(new String[] { config.serverAddress, Integer.toString(config.rasPort) });
+		item.setText(new String[] { config.serverAddress, config.getRemoteRasPortAsString() });
 		item.setData("ServerName", config.getServerName()); // del
-		item.setData("RASPort", config.rasPort); // del
+		item.setData("RASPort", config.remoteRasPort); // del
 		item.setData("ServerConfig", config);
 		item.setImage(serverIcon);
 		item.setChecked(false);
@@ -393,5 +474,4 @@ public class ClusterViewer extends ViewPart {
 	
 		
 	}
-
 }

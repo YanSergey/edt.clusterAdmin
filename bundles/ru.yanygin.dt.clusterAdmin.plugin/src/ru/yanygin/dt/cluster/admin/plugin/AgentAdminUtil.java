@@ -1,4 +1,4 @@
-package ru.yanygin.dt.clusterAdmin.plugin;
+package ru.yanygin.dt.cluster.admin.plugin;
 
 import java.util.List;
 import java.util.UUID;
