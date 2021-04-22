@@ -370,7 +370,8 @@ public class ClusterViewer extends ViewPart {
 		
 		TreeItem[] servers = serversTree.getItems();
 		for (TreeItem server : servers) {
-			String serverAddress = (String) server.getData("ServerName");
+//			String serverAddress = (String) server.getData("ServerName");
+			String serverAddress = ((ServerConfig) server.getData("ServerConfig")).serverAddress;
 			int rasPort = (int) server.getData("RASPort");
 			
 			try {
