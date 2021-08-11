@@ -14,6 +14,6 @@
 	<classpathentry kind="lib" path="lib/com._1c.v8.swp-1.0.3-SNAPSHOT.jar"/>
 	<classpathentry kind="lib" path="lib/com._1c.v8.swp.netty-1.0.3-SNAPSHOT.jar"/>
 	<classpathentry kind="lib" path="lib/netty-3.2.6.Final.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/clusterAdmin Library"/>
+	<classpathentry kind="lib" path="lib/ru.yanygin.clusterAdminLibrary.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
