@@ -294,4 +294,21 @@
   	  </build>
   	</profile>
   </profiles>
+   
+    <dependencies>
+        <dependency>
+            <groupId>ru.yanygin</groupId>
+            <artifactId>ru.yanygin.clusterAdminLibrary</artifactId>
+        </dependency>
+  
+    </dependencies>
+    <dependencyManagement>
+    	<dependencies>
+    		<dependency>
+    			<groupId>ru.yanygin</groupId>
+    			<artifactId>ru.yanygin.clusterAdminLibrary</artifactId>
+    			<version>0.1.0-SNAPSHOT</version>
+    		</dependency>
+    	</dependencies>
+    </dependencyManagement>
 </project>

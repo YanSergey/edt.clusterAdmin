@@ -119,5 +119,23 @@
 <unit id="org.eclipse.license.feature.group" version="0.0.0"/>
 <repository location="http://download.eclipse.org/cbi/updates/license/2.0.2.v20181016-2210"/>
 </location>
+    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="slicer" includeSource="true" type="InstallableUnit">
+        <repository location="https://yansergey.github.io/test1/"/>
+        <unit id="ch.qos.logback.classic" version="1.2.3"/>
+        <unit id="ch.qos.logback.core" version="1.2.3"/>
+        <unit id="com._1c.v8.core" version="1.0.30.20210819211350"/>
+        <unit id="com._1c.v8.ibis" version="1.1.1.20210819211350"/>
+        <unit id="com._1c.v8.ibis.admin" version="1.6.7"/>
+        <unit id="com._1c.v8.ibis.swp" version="1.1.1.20210819211350"/>
+        <unit id="com._1c.v8.swp" version="1.0.3.20210819211350"/>
+        <unit id="com._1c.v8.swp.netty" version="1.0.3.20210819211350"/>
+        <unit id="com.google.gson" version="2.8.6"/>
+        <unit id="org.eclipse.core.commands" version="3.10.0.v20210401-0744"/>
+        <unit id="org.eclipse.equinox.common" version="3.15.0.v20210518-0604"/>
+        <unit id="org.eclipse.jface" version="3.22.0.v20201106-0834"/>
+        <unit id="org.jboss.netty" version="3.2.6.Final"/>
+        <unit id="ru.yanygin.clusterAdminLibrary" version="0.1.0.20210819211350"/>
+        <unit id="slf4j.api" version="1.7.30"/>
+    </location>
 </locations>
 </target>
